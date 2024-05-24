@@ -1,3 +1,4 @@
+#include <cstring>
 #include <ext2fs/ext2_fs.h>
 #include <fcntl.h>
 #include <inode_info.hpp>
@@ -99,12 +100,35 @@ void read_and_print_bitmaps(int fd, const struct ext2_super_block &super)
     }
 
     // 读取根目录的索引节点信息
-    lseek(fd, gdt[0].bg_inode_table * block_size + 256, SEEK_SET);
+    lseek(fd, gdt[0].bg_inode_table * block_size + 2 * sizeof(ext2_inode), SEEK_SET);
     ext2_inode *inode = (ext2_inode *)malloc(sizeof(ext2_inode));
     read(fd, inode, sizeof(ext2_inode));
     print_inode_info(*inode);
 
+    auto den_blk = inode->i_block[0];
+    char *name = (char *)malloc(256);
+    lseek(fd, den_blk * block_size, SEEK_SET);
+    ext2_dir_entry_2 *start = (ext2_dir_entry_2 *)malloc(block_size);
+    ext2_dir_entry_2 *dir_entry = start;
+    read(fd, dir_entry, block_size);
+    std::cout << "\n\n\n";
+    printf("Root directory entry:\n");
+
+    while (dir_entry->inode != 0)
+    {
+        printf("inode: %u\n", dir_entry->inode);
+        printf("rec_len: %u\n", dir_entry->rec_len);
+        printf("name_len: %u\n", dir_entry->name_len);
+        std::memcpy(name, dir_entry->name, dir_entry->name_len);
+        name[dir_entry->name_len] = '\0';
+        printf("name: %s\n", name);
+        dir_entry = (ext2_dir_entry_2 *)((char *)dir_entry + dir_entry->rec_len);
+    }
+    std::cout << "\n\n\n";
+
     // 释放内存
+    free(name);
+    free(dir_entry);
     free(inode);
     free(block_bitmap);
     free(inode_bitmap);
@@ -115,7 +139,7 @@ int main()
 {
     int fd;
     struct ext2_super_block super;
-    fd = open("build/mydisk", O_RDONLY);
+    fd = open("mydisk", O_RDONLY);
     if (fd < 0)
     {
         perror("Failed to open the virtual disk");

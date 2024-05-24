@@ -1,6 +1,7 @@
 #include <inode_info.hpp>
 void print_inode_info(const ext2_inode &inode)
 {
+    std::cout << "\n\n\n";
     std::cout << "Inode Information:" << std::endl;
     std::cout << "------------------" << std::endl;
 
